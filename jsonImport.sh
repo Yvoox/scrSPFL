@@ -18,6 +18,7 @@ echo $jsonPath
 
 for filename in $jsonPath/*.json; do
   echo "[" > temp.json
+  echo "[" > species.json
   while read p; do
     if builtin echo "{$p}" | grep bouquet;
     then
@@ -33,6 +34,16 @@ for filename in $jsonPath/*.json; do
     then
       ((++nbFlower))
       flowerName="$(builtin echo "{$p}"| grep species | sed 's/{\"species\": //g' | sed 's/}}//g')"
+      simpleFlowerName="$( echo $flowerName | sed 's/\"//g' |cut -d' ' -f1)" #-f1-N to keep n words
+
+      grep -q -i "$simpleFlowerName" species.json
+      if [ $? -eq 0 ]; then
+         echo "Name Found"
+      else
+        newSpecies="{\"species\":\"$simpleFlowerName\"},"
+        echo $newSpecies >> species.json
+      fi
+
       flowerList="${flowerList}${flowerName},"
     fi
 
@@ -41,6 +52,8 @@ for filename in $jsonPath/*.json; do
   sed -i '.bak' 's/,},\"/\",\"/g' temp.json
   sed -i '.bak' 's/,}/,}\"/g' temp.json
   sed -i '.bak' '$ s/.$//' temp.json
+  sed -i '.bak' '$ s/.$//' species.json
   echo "]" >> temp.json
+  echo "]" >> species.json
   #autoImp
 done
