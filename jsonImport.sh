@@ -15,26 +15,32 @@ autoImp(){
 
 echo $jsonPath
 
+
 for filename in $jsonPath/*.json; do
-  fileContent="$( cat $filename )"
-  id="$(echo "${filename}" | rev | cut -d"/" -f1  | rev)"
-  bId="$(echo "${id}" | rev | cut -d"." -f2-  | rev)"
-  echo "bId = ${bId}"
+  echo "[" > temp.json
+  while read p; do
+    if builtin echo "{$p}" | grep bouquet;
+    then
+      flowerList+="]"
+      flowerList="$( echo $flowerList | sed 's/,]/]/g')"
+      JsonBouquet="{\"id\":\"$bId\",\"nbFlowers\":\"$nbFlower\",$flowerList},"
+      echo $JsonBouquet >> temp.json
+      bId="$(builtin echo "{$p}" | grep bouquet | sed 's/{\"bouquet\": \"//g' | sed 's/\",}//g')"
+      nbFlower=0
+      flowerList="\"Flowers\":["
+    fi
+    if builtin echo "{$p}" | grep species;
+    then
+      ((++nbFlower))
+      flowerName="$(builtin echo "{$p}"| grep species | sed 's/{\"species\": //g' | sed 's/}}//g')"
+      flowerList="${flowerList}${flowerName},"
+    fi
 
-  nbFlower="$(echo "{$fileContent}" | grep bloomy_id | wc -l |  sed "s/\   //g")"
-  echo "nbFlower = ${nbFlower}"
-
-  flowerName="$(echo "{$fileContent}"| grep name | sed "s/\\\u00a0/ /g" | sed "s/\"name\": \"//g" | sed 's/-.*//' | sed 's/".*//' | sed "s/\      //g")"
-
-  flowerList="\"Flowers\":["
-  while read -r line; do
-      flowerList+="\"$line\","
-  done <<< "$flowerName"
-  flowerList=${flowerList%,}
-  flowerList+="]"
-
-
-  JsonBouquet="[{\"id\":\"$bId\",nbFlowers:\"$nbFlower\",$flowerList}]"
-  echo "${JsonBouquet}" > temp.json
-  autoImp
+  done < $filename
+  sed -i '.bak' '2d' temp.json
+  sed -i '.bak' 's/,},\"/\",\"/g' temp.json
+  sed -i '.bak' 's/,}/,}\"/g' temp.json
+  sed -i '.bak' '$ s/.$//' temp.json
+  echo "]" >> temp.json
+  #autoImp
 done
